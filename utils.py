@@ -26,11 +26,11 @@ import aiohttp
 import async_timeout
 
 
-def numpy2tensor(np_array, gpu_id):
+def numpy2tensor(np_array, device):
     if len(np_array.shape) == 2:
-        tensor = torch.from_numpy(np_array).unsqueeze(0).float().to(gpu_id)
+        tensor = torch.from_numpy(np_array).unsqueeze(0).float().to(device)
     else:
-        tensor = torch.from_numpy(np_array).unsqueeze(0).transpose(1,3).transpose(2,3).float().to(gpu_id)
+        tensor = torch.from_numpy(np_array).unsqueeze(0).transpose(1,3).transpose(2,3).float().to(device)
     return tensor
 
 

@@ -23,10 +23,6 @@ parser.add_argument('--num_steps', type=int, default=1000, help='Number of itera
 
 opt = parser.parse_args()
 
-###################################
-########### First Pass ###########
-###################################
-
 # Inputs
 source_file = opt.source_file
 mask_file = opt.mask_file
@@ -35,9 +31,16 @@ target_file = opt.target_file
 # Hyperparameter Inputs
 gpu_id = opt.gpu_id
 num_steps = opt.num_steps
-ss = opt.ss; # source image size
+ss = opt.ss # source image size
 ts = opt.ts # target image size
 x_start = opt.x; y_start = opt.y # blending location
+
+device = f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu"
+print(f"Using {device} device")
+
+###################################
+########### First Pass ###########
+###################################
 
 # Default weights for loss functions in the first pass
 grad_weight = 1e4; style_weight = 1e4; content_weight = 1; tv_weight = 1e-6
@@ -50,18 +53,18 @@ mask_img[mask_img>0] = 1
 
 # Make Canvas Mask
 canvas_mask = make_canvas_mask(x_start, y_start, target_img, mask_img)
-canvas_mask = numpy2tensor(canvas_mask, gpu_id)
+canvas_mask = numpy2tensor(canvas_mask, device)
 canvas_mask = canvas_mask.squeeze(0).repeat(3,1).view(3,ts,ts).unsqueeze(0)
 
 # Compute Ground-Truth Gradients
-gt_gradient = compute_gt_gradient(x_start, y_start, source_img, target_img, mask_img, gpu_id)
+gt_gradient = compute_gt_gradient(x_start, y_start, source_img, target_img, mask_img, device)
 
 # Convert Numpy Images Into Tensors
-source_img = torch.from_numpy(source_img).unsqueeze(0).transpose(1,3).transpose(2,3).float().to(gpu_id)
-target_img = torch.from_numpy(target_img).unsqueeze(0).transpose(1,3).transpose(2,3).float().to(gpu_id)
-input_img = torch.randn(target_img.shape).to(gpu_id)
+source_img = torch.from_numpy(source_img).unsqueeze(0).transpose(1,3).transpose(2,3).float().to(device)
+target_img = torch.from_numpy(target_img).unsqueeze(0).transpose(1,3).transpose(2,3).float().to(device)
+input_img = torch.randn(target_img.shape).to(device)
 
-mask_img = numpy2tensor(mask_img, gpu_id)
+mask_img = numpy2tensor(mask_img, device)
 mask_img = mask_img.squeeze(0).repeat(3,1).view(3,ss,ss).unsqueeze(0)
 
 # Define LBFGS optimizer
@@ -74,19 +77,19 @@ optimizer = get_input_optimizer(input_img)
 mse = torch.nn.MSELoss()
 
 # Import VGG network for computing style and content loss
-mean_shift = MeanShift(gpu_id)
-vgg = Vgg16().to(gpu_id)
+mean_shift = MeanShift(device)
+vgg = Vgg16().to(device)
 
 run = [0]
 while run[0] <= num_steps:
     
     def closure():
         # Composite Foreground and Background to Make Blended Image
-        blend_img = torch.zeros(target_img.shape).to(gpu_id)
+        blend_img = torch.zeros(target_img.shape).to(device)
         blend_img = input_img*canvas_mask + target_img*(canvas_mask-1)*(-1) 
         
         # Compute Laplacian Gradient of Blended Image
-        pred_gradient = laplacian_filter_tensor(blend_img, gpu_id)
+        pred_gradient = laplacian_filter_tensor(blend_img, device)
         
         # Compute Gradient Loss
         grad_loss = 0
@@ -146,7 +149,7 @@ while run[0] <= num_steps:
 input_img.data.clamp_(0, 255)
 
 # Make the Final Blended Image
-blend_img = torch.zeros(target_img.shape).to(gpu_id)
+blend_img = torch.zeros(target_img.shape).to(device)
 blend_img = input_img*canvas_mask + target_img*(canvas_mask-1)*(-1) 
 blend_img_np = blend_img.transpose(1,3).transpose(1,2).cpu().data.numpy()[0]
 
@@ -168,8 +171,8 @@ num_steps = opt.num_steps
 first_pass_img_file = 'results/'+str(name)+'_first_pass.png'
 first_pass_img = np.array(Image.open(first_pass_img_file).convert('RGB').resize((ss, ss)))
 target_img = np.array(Image.open(target_file).convert('RGB').resize((ts, ts)))
-first_pass_img = torch.from_numpy(first_pass_img).unsqueeze(0).transpose(1,3).transpose(2,3).float().to(gpu_id)
-target_img = torch.from_numpy(target_img).unsqueeze(0).transpose(1,3).transpose(2,3).float().to(gpu_id)
+first_pass_img = torch.from_numpy(first_pass_img).unsqueeze(0).transpose(1,3).transpose(2,3).float().to(device)
+target_img = torch.from_numpy(target_img).unsqueeze(0).transpose(1,3).transpose(2,3).float().to(device)
 
 # Define LBFGS optimizer
 def get_input_optimizer(first_pass_img):
