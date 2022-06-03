@@ -1,4 +1,13 @@
 # Deep Image Blending
+Quick test out on Colab: https://colab.research.google.com/drive/1km3KMjpzjJhxWuXszZLpTeUHNUs6jHXN?usp=sharing
+
+1 Forward pass:
+
+<img src='demo_imgs/original_work.png' align="middle" width=200>
+<img src='demo_imgs/shifted_glass.png' align="middle" width=200>
+
+---
+##Original readme:
 This is a Pytorch implementation of our paper "Deep Image Blending". 
 
 [Deep Image Blending](http://openaccess.thecvf.com/content_WACV_2020/papers/Zhang_Deep_Image_Blending_WACV_2020_paper.pdf) <br />
