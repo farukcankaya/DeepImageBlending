@@ -1,0 +1,9 @@
+Pillow==9.1.1
+matplotlib==3.5.2
+numpy==1.22.4
+scikit-image==0.19.2
+torch==1.11.0
+opencv-python-headless==4.5.5.64
+torchvision==0.12.0
+aiohttp==3.8.1
+async-timeout==4.0.2
